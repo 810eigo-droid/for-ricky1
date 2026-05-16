@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smartoon LP｜AI時代に、自分の軸を取り戻すための物語</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel (ブラウザ内でJSXをコンパイルするため) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { 
+      font-family: 'Noto Sans JP', sans-serif; 
+      -webkit-font-smoothing: antialiased;
+      background-color: #FAF7F0;
+    }
+    
+    /* カスタムスクロールバー隠し (横スクロール用) */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* 呼吸アニメーション */
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      40% { transform: scale(1.6); opacity: 0.2; } /* 吸う4秒 */
+    }
+    @keyframes breathe-border {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      40% { transform: scale(1.4); opacity: 0; }
+    }
+    .animate-breathe { 
+      animation: breathe 10s infinite ease-in-out; 
+    }
+    .animate-breathe-border {
+      animation: breathe-border 10s infinite ease-in-out; 
+    }
+    
+    /* 光の点滅アニメーション */
+    @keyframes pulse-fast {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+    .animate-pulse-fast {
+      animation: pulse-fast 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="selection:bg-[#C5A45D]/30">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- アイコンコンポーネント (Lucide IconsのSVGインライン版) ---
+    const ChevronRight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>;
+    const BookOpen = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+    const Layers = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>;
+    const Sparkles = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>;
+    const Wind = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>;
+
+    // --- 設定・ユーティリティ ---
+    const COLORS = {
+      cream: '#FAF7F0',
+      warmWhite: '#FFFFFF',
+      paleBeige: '#EFE7D8',
+      blueGray: '#EAF1F6',
+      navy: '#14233A',
+      gold: '#C5A45D',
+      purple: '#7B6BB7',
+      red: '#B94A48',
+    };
+
+    // スクロール時にフェードインさせるカスタムコンポーネント
+    const FadeIn = ({ children, delay = 0, className = '', threshold = 0.1, direction = 'up' }) => {
+      const [isVisible, setIsVisible] = useState(false);
+      const ref = useRef(null);
+
+      useEffect(() => {
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) {
+              setIsVisible(true);
+              observer.unobserve(entry.target);
+            }
+          },
+          { threshold }
+        );
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+      }, [threshold]);
+
+      const getTranslate = () => {
+        if (isVisible) return 'translate-y-0 translate-x-0';
+        switch (direction) {
+          case 'up': return 'translate-y-8';
+          case 'down': return '-translate-y-8';
+          case 'left': return 'translate-x-8';
+          case 'right': return '-translate-x-8';
+          default: return 'translate-y-8';
+        }
+      };
+
+      return (
+        <div
+          ref={ref}
+          className={`transition-all duration-1000 ease-out ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          } ${getTranslate()} ${className}`}
+          style={{ transitionDelay: `${delay}ms` }}
+        >
+          {children}
+        </div>
+      );
+    };
+
+    // 漫画画像プレースホルダー
+    const ChapterImage = ({ src, alt }) => (
+      <div className="w-full rounded-[24px] overflow-hidden border border-[#14233A]/10 shadow-[0_8px_30px_rgb(0,0,0,0.05)] bg-[#EAF1F6] min-h-[400px] relative flex items-center justify-center my-8">
+        <img 
+          src={src} 
+          alt={alt} 
+          className="w-full h-auto relative z-10" 
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.nextElementSibling.style.display = 'flex';
+          }}
+        />
+        <div className="absolute inset-0 hidden flex-col items-center justify-center text-[#14233A]/40 font-bold p-8 text-center z-0 bg-[#EAF1F6]">
+          <span className="text-lg">{alt}</span>
+          <span className="text-sm font-normal mt-2">（ファイル: {src} が見つかりません）</span>
+        </div>
+      </div>
+    );
+
+    // 気づきカードコンポーネント
+    const InsightCard = ({ title = "この章の気づき", children }) => (
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-[#C5A45D]/20 my-12 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A45D]"></div>
+        <h4 className="text-sm font-bold text-[#C5A45D] mb-4">{title}</h4>
+        <div className="text-[16px] leading-[1.8] text-[#14233A]">
+          {children}
+        </div>
+      </div>
+    );
+
+    // --- 各セクションコンポーネント ---
+
+    const FirstView = () => {
+      return (
+        <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-6 pt-20 pb-32 overflow-hidden bg-gradient-to-b from-[#FAF7F0] to-[#EAF1F6]">
+          <div className="absolute inset-0 opacity-30 pointer-events-none">
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[1px] h-1/2 bg-gradient-to-b from-transparent via-[#C5A45D] to-transparent shadow-[0_0_15px_#C5A45D]"></div>
+            <div className="absolute top-1/3 left-1/4 w-1 h-1 rounded-full bg-[#C5A45D] animate-ping" style={{animationDuration: '3s'}}></div>
+            <div className="absolute top-1/2 right-1/4 w-1.5 h-1.5 rounded-full bg-[#7B6BB7] animate-ping" style={{animationDuration: '4s', animationDelay: '1s'}}></div>
+          </div>
+
+          <FadeIn className="text-center z-10 max-w-lg w-full">
+            <h2 className="text-[14px] md:text-[16px] font-bold tracking-widest text-[#14233A] mb-8">
+              AI時代に、自分の軸を取り戻すための<br />7章のスマートゥーン物語
+            </h2>
+            <h1 className="text-[34px] md:text-[44px] font-bold leading-[1.4] text-[#14233A] mb-12">
+              選択に迷う時代<br />こそ
+              <span className="text-[#C5A45D]">整える力</span>が<br /><span className="text-[#7B6BB7]">未来</span>を変える
+            </h1>
+            <div className="text-[16px] leading-[2] text-[#14233A]/80 mb-16 space-y-6">
+              <p>情報が増えた。<br />選択肢も増えた。<br />でも、自分の正解は見えにくくなった。</p>
+              <p>だからこそ、<br />外側と内側を整え、<br />整った自分で未来を選ぶ。</p>
+            </div>
+            <div className="flex flex-col gap-4 items-center">
+              <button onClick={() => document.getElementById('chapter-1').scrollIntoView({behavior: 'smooth'})} className="w-full max-w-[300px] bg-[#14233A] text-white py-4 px-8 rounded-full font-bold flex items-center justify-center gap-2 hover:bg-[#1a2d4a] transition-colors shadow-lg shadow-[#14233A]/20">
+                物語を読む
+                <ChevronRight className="w-5 h-5 text-[#C5A45D]" />
+              </button>
+            </div>
+          </FadeIn>
+        </section>
+      );
+    };
+
+    const Section1 = () => (
+      <section className="py-24 px-6 relative bg-[#FAF7F0] overflow-hidden" id="chapter-1">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#14233A0A_1px,transparent_1px),linear-gradient(to_bottom,#14233A0A_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
+        <div className="max-w-lg mx-auto relative z-10">
+          <FadeIn>
+            <div className="inline-block bg-[#14233A] text-white text-xs font-bold px-3 py-1 tracking-wider mb-6">
+              CHAPTER 01
+            </div>
+            <h2 className="text-[28px] md:text-[36px] font-bold text-[#14233A] leading-[1.4] mb-12">
+              AI時代、<br />正解が見えにくくなった
+            </h2>
+            <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-sm mb-12">
+              <p className="text-[16px] md:text-[18px] leading-[1.8] text-[#14233A]">
+                努力してきた人ほど、<br />時代の変化を敏感に感じる。<br /><br />
+                勉強してきた。<br />準備してきた。<br />将来のために積み上げてきた。<br /><br />
+                それでも、AIの進化を目の前にすると、<br />
+                <span className="font-bold">「この努力は、この先も武器になるのだろうか」</span><br />
+                と、心が揺れることがある。
+              </p>
+            </div>
+          </FadeIn>
+          <FadeIn delay={200}>
+            <ChapterImage src="./images/chapter1.webp" alt="第1章 漫画画像" />
+          </FadeIn>
+          <FadeIn delay={300}>
+            <InsightCard>
+              <p>
+                AI時代に必要なのは、<br />正解探しだけではありません。<br /><br />
+                まずは、<br />
+                <span className="font-bold text-[18px]">整った自分で選べる状態をつくること。</span>
+              </p>
+            </InsightCard>
+          </FadeIn>
+        </div>
+      </section>
+    );
+
+    const Section2 = () => {
+      const cards = ["AI", "Career", "Consulting", "Startup", "Research", "Abroad", "SNS", "Future"];
+      return (
+        <section className="py-24 px-6 relative bg-[#EFE7D8] overflow-hidden" id="chapter-2">
+          <div className="absolute inset-0 pointer-events-none opacity-20">
+            {cards.map((word, i) => (
+              <div key={i} className="absolute text-[#14233A] font-bold text-xl" 
+                   style={{ top: `${Math.random() * 80 + 10}%`, left: `${Math.random() * 80 + 10}%`, transform: `rotate(${Math.random() * 30 - 15}deg)` }}>
+                #{word}
+              </div>
+            ))}
+          </div>
+          <div className="max-w-lg mx-auto relative z-10">
+            <FadeIn>
+              <div className="inline-block bg-[#14233A] text-white text-xs font-bold px-3 py-1 tracking-wider mb-6">
+                CHAPTER 02
+              </div>
+              <h2 className="text-[28px] md:text-[36px] font-bold text-[#14233A] leading-[1.4] mb-12 relative">
+                情報を増やすだけでは、<br />人生の答えは見つからない。
+                <div className="absolute -top-4 -left-4 w-full h-full bg-white/30 rounded-lg -z-10 transform -rotate-2"></div>
+              </h2>
+              <div className="text-[16px] md:text-[18px] leading-[1.8] text-[#14233A] mb-12">
+                <p>
+                  今は、情報も選択肢も<br />いくらでも手に入る時代です。<br /><br />
+                  でも、情報が増えすぎると、<br />どの道も正しく見え、<br />どれも少し違う気がしてくる。<br /><br />
+                  必要なのは、<br />もっと調べることではなく、<br />
+                  <span className="font-bold text-[#C5A45D] text-[20px] bg-white px-2 py-1 mt-2 inline-block">選ぶときの自分の軸</span>です。
+                </p>
+              </div>
+            </FadeIn>
+            <FadeIn delay={200}>
+              <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-8 mb-4 hide-scrollbar -mx-6 px-6">
+                {['外資コンサル', 'AI', '研究職', '起業', '海外', '社会貢献'].map((item, i) => (
+                  <div key={i} className="snap-center shrink-0 w-[140px] h-[100px] bg-white rounded-xl shadow-sm flex items-center justify-center font-bold text-[#14233A]/60 text-sm">
+                    {item}
+                  </div>
+                ))}
+                <div className="snap-center shrink-0 w-[180px] h-[100px] bg-[#C5A45D] text-white rounded-xl shadow-md flex items-center justify-center font-bold text-lg border-2 border-white">
+                  自分の軸
+                </div>
+              </div>
+            </FadeIn>
+            <FadeIn delay={300}>
+              <ChapterImage src="./images/chapter2.webp" alt="第2章 漫画画像" />
+            </FadeIn>
+            <FadeIn delay={400}>
+              <InsightCard>
+                <p className="font-bold text-[18px] mb-4">情報量よりも、選ぶときの自分の状態。</p>
+                <p>
+                  周りの正解は、自分の正解とは限りません。<br /><br />
+                  外の情報に振り回されないために、<br />
+                  <span className="font-bold border-b-2 border-[#C5A45D]">内側の軸を整える。</span>
+                </p>
+              </InsightCard>
+            </FadeIn>
+          </div>
+        </section>
+      );
+    };
+
+    const Section3 = () => (
+      <section className="py-24 px-6 relative bg-white" id="chapter-3">
+        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-gradient-to-b from-transparent via-[#14233A]/20 to-transparent"></div>
+        <div className="max-w-lg mx-auto relative z-10">
+          <FadeIn className="flex flex-col items-center text-center mb-16">
+            <div className="flex flex-col items-center gap-8 text-[#14233A]/40 text-sm font-bold tracking-[0.3em] mb-12 relative">
+              <span className="bg-white px-4 text-[#C5A45D]">姿勢</span>
+              <span className="bg-white px-4">呼吸</span>
+              <span className="bg-white px-4">印象</span>
+              <span className="bg-white px-4">チャクラ</span>
+            </div>
+            <div className="w-full text-left">
+              <div className="inline-block bg-[#14233A] text-white text-xs font-bold px-3 py-1 tracking-wider mb-6">
+                CHAPTER 03
+              </div>
+              <h2 className="text-[28px] md:text-[36px] font-bold text-[#14233A] leading-[1.4] mb-8">
+                第一印象は、<br />言葉より先に伝わっている。
+              </h2>
+              <p className="text-[16px] md:text-[18px] leading-[1.8] text-[#14233A]">
+                面接や就活では、<br />話す内容だけが見られているわけではありません。<br /><br />
+                背筋。<br />肩の力。<br />呼吸。<br />目線。<br />表情。<br /><br />
+                それらは、言葉より先に、<br />落ち着き・清潔感・信頼感として伝わります。
+              </p>
+            </div>
+          </FadeIn>
+          <FadeIn delay={200} className="mb-12">
+            <div className="flex flex-col gap-4">
+              <div className="bg-[#FAF7F0] p-6 rounded-2xl border border-[#14233A]/10">
+                <h3 className="font-bold text-[#B94A48] mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#B94A48]"></span> 猫背
+                </h3>
+                <ul className="text-sm text-[#14233A] space-y-1 ml-4 list-disc">
+                  <li>呼吸が浅い</li>
+                  <li>表情が暗く見える</li>
+                  <li>不安が伝わりやすい</li>
+                </ul>
+              </div>
+              <div className="bg-white shadow-md p-6 rounded-2xl border border-[#C5A45D]/30 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-16 h-16 bg-[#C5A45D]/10 rounded-bl-full"></div>
+                <h3 className="font-bold text-[#C5A45D] mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#C5A45D]"></span> 整った姿勢
+                </h3>
+                <ul className="text-sm text-[#14233A] space-y-1 ml-4 list-disc">
+                  <li>呼吸が深くなる</li>
+                  <li>表情が明るく見える</li>
+                  <li>信頼感が出る</li>
+                </ul>
+              </div>
+            </div>
+          </FadeIn>
+          <FadeIn delay={300}>
+            <ChapterImage src="./images/chapter3.webp" alt="第3章 漫画画像" />
+          </FadeIn>
+          <FadeIn delay={400}>
+            <InsightCard>
+              <p className="font-bold text-[18px] mb-4">姿勢は、見た目だけではありません。</p>
+              <p>
+                外側の印象。<br />呼吸の深さ。<br />背骨のライン。<br />チャクラの流れ。<br /><br />
+                その入口が、姿勢です。
+              </p>
+            </InsightCard>
+          </FadeIn>
+        </div>
+      </section>
+    );
+
+    const Section4 = () => (
+      <section className="py-24 px-6 relative bg-gradient-to-b from-[#2A364F] to-[#FAF7F0] overflow-hidden" id="chapter-4">
+        <div className="max-w-lg mx-auto relative z-10">
+          <FadeIn>
+            <div className="relative h-32 mb-8">
+              <span className="absolute top-0 left-4 text-white/30 text-sm">AIに代わられる？</span>
+              <span className="absolute top-1/4 right-8 text-white/20 text-xs">努力は無駄？</span>
+              <span className="absolute bottom-4 left-1/3 text-white/40 text-sm">選ぶ道を間違えたら？</span>
+              <span className="absolute top-1/2 right-4 text-white/30 text-xs">周りは進んでいる</span>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="bg-white/10 backdrop-blur-md text-white px-6 py-2 rounded-full border border-white/20 tracking-widest text-sm">深い呼吸</span>
+              </div>
+            </div>
+          </FadeIn>
+          <FadeIn delay={200}>
+            <div className="inline-block bg-white text-[#14233A] text-xs font-bold px-3 py-1 tracking-wider mb-6 shadow-sm">
+              CHAPTER 04
+            </div>
+            <h2 className="text-[28px] md:text-[36px] font-bold text-white leading-[1.4] mb-8 drop-shadow-md">
+              不安を消すのではなく、<br />飲み込まれない自分を育てる。
+            </h2>
+            <p className="text-[16px] md:text-[18px] leading-[1.8] text-white/90 mb-16">
+              AI時代の不安は、自然なものです。<br /><br />
+              大切なのは、<br />不安を無理に消そうとすることではありません。<br /><br />
+              不安があっても、<br />それに飲み込まれない距離をつくること。<br /><br />
+              その入口が、深い呼吸です。
+            </p>
+          </FadeIn>
+          <FadeIn delay={300} className="mb-16 flex flex-col items-center justify-center">
+            <div className="relative w-48 h-48 flex items-center justify-center mb-8">
+              <div className="absolute w-full h-full bg-[#EAF1F6]/50 rounded-full animate-breathe blur-sm"></div>
+              <div className="absolute w-3/4 h-3/4 border-2 border-white/50 rounded-full animate-breathe-border"></div>
+              <div className="relative z-10 text-center">
+                <Wind className="w-8 h-8 text-white mx-auto mb-2 opacity-80" />
+                <p className="text-white font-bold tracking-widest text-sm">BREATHE</p>
+              </div>
+            </div>
+            <p className="text-center text-[#14233A] font-medium leading-[2]">
+              背筋を整える。<br />ゆっくり吸う（4秒）<br />深く、長く吐く（6秒）
+            </p>
+          </FadeIn>
+          <FadeIn delay={400}>
+            <div className="relative">
+              <div className="absolute -left-10 top-1/2 w-[150%] h-[1px] bg-gradient-to-r from-transparent via-[#EAF1F6] to-transparent -rotate-12 z-0 opacity-50"></div>
+              <ChapterImage src="./images/chapter4.webp" alt="第4章 漫画画像" />
+            </div>
+          </FadeIn>
+          <FadeIn delay={500}>
+            <InsightCard>
+              <p>
+                呼吸は、不安を消す魔法ではありません。<br /><br />
+                でも、<br />心のノイズとの距離をつくり、<br />
+                <span className="font-bold text-[#14233A] text-[18px]">自分の本音に戻る入口</span>になります。
+              </p>
+            </InsightCard>
+          </FadeIn>
+        </div>
+      </section>
+    );
+
+    const Section5 = () => (
+      <section className="py-32 px-6 relative bg-[#FAF7F0]" id="chapter-5">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-white rounded-full blur-[100px] opacity-70"></div>
+        <div className="max-w-lg mx-auto relative z-10">
+          <FadeIn>
+            <div className="inline-block bg-[#14233A] text-white text-xs font-bold px-3 py-1 tracking-wider mb-6">
+              CHAPTER 05
+            </div>
+            <h2 className="text-[28px] md:text-[36px] font-bold text-[#14233A] leading-[1.4] mb-12">
+              思考を止めるためではなく、<br />本当に大切な声を聞きやすくするために。
+            </h2>
+            <p className="text-[16px] md:text-[18px] leading-[1.8] text-[#14233A] mb-20">
+              瞑想は、無になることではありません。<br /><br />
+              考えが浮かんでもいい。<br />ただ、追いかけすぎない。<br />また呼吸に戻る。<br /><br />
+              祈りも、何かを他力的に叶えてもらう時間ではありません。<br /><br />
+              不安ではなく、誠実さから選ぶために、<br />自分の心の向きを整える時間です。
+            </p>
+          </FadeIn>
+          <div className="flex flex-col gap-6 mb-20">
+            <FadeIn delay={100}>
+              <div className="bg-white/60 backdrop-blur-md p-6 rounded-2xl text-center shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-white">
+                <p className="font-bold text-[#14233A] tracking-wider">1分、目を閉じる</p>
+              </div>
+            </FadeIn>
+            <FadeIn delay={300}>
+              <div className="bg-white/60 backdrop-blur-md p-6 rounded-2xl text-center shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-white">
+                <p className="font-bold text-[#14233A] tracking-wider">浮かぶ思考を追わない</p>
+              </div>
+            </FadeIn>
+            <FadeIn delay={500}>
+              <div className="bg-[#14233A] p-6 rounded-2xl text-center shadow-lg">
+                <p className="font-bold text-[#C5A45D] tracking-wider">今日の心の向きを整える</p>
+              </div>
+            </FadeIn>
+          </div>
+          <FadeIn delay={600}>
+            <ChapterImage src="./images/chapter5.webp" alt="第5章 漫画画像" />
+          </FadeIn>
+          <FadeIn delay={700}>
+            <InsightCard>
+              <p className="font-bold text-[18px] mb-4">瞑想と祈りは、現実から逃げるためではない。</p>
+              <p>
+                AI時代の情報や不安に飲まれず、<br />自分の軸に戻るための<br />
+                <span className="font-bold text-[#7B6BB7] text-[18px]">静かな習慣</span>です。
+              </p>
+            </InsightCard>
+          </FadeIn>
+        </div>
+      </section>
+    );
+
+    const Section6 = () => {
+      const timeline = [
+        { num: "01", text: "正解が見えにくい" },
+        { num: "02", text: "情報と軸" },
+        { num: "03", text: "姿勢" },
+        { num: "04", text: "呼吸" },
+        { num: "05", text: "瞑想と祈り" },
+        { num: "06", text: "整った自分で選ぶ", highlight: true },
+      ];
+      return (
+        <section className="py-24 px-6 relative bg-white" id="chapter-6">
+          <div className="max-w-lg mx-auto relative z-10">
+            <div className="mb-16 pl-4 border-l-2 border-[#C5A45D]/20 space-y-6">
+              {timeline.map((item, i) => (
+                <FadeIn key={i} delay={i * 100} direction="left">
+                  <div className="flex items-center gap-4 relative">
+                    <div className={`absolute -left-[21px] w-2 h-2 rounded-full ${item.highlight ? 'bg-[#C5A45D] shadow-[0_0_10px_#C5A45D]' : 'bg-[#EAF1F6]'}`}></div>
+                    <span className={`text-xs font-bold ${item.highlight ? 'text-[#C5A45D]' : 'text-[#14233A]/40'}`}>{item.num}</span>
+                    <span className={`text-sm ${item.highlight ? 'font-bold text-[#14233A] border-b border-[#C5A45D]' : 'text-[#14233A]/60'}`}>{item.text}</span>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+            <FadeIn>
+              <div className="inline-block bg-[#14233A] text-white text-xs font-bold px-3 py-1 tracking-wider mb-6">
+                CHAPTER 06
+              </div>
+              <h2 className="text-[28px] md:text-[36px] font-bold text-[#14233A] leading-[1.4] mb-8">
+                未来は読めなくても、<br />自分の状態は整えられる。
+              </h2>
+              <p className="text-[16px] md:text-[18px] leading-[1.8] text-[#14233A] mb-12">
+                AI時代に、未来を完全に読むことはできません。<br /><br />
+                でも、<br />自分の状態を整えることはできます。<br /><br />
+                姿勢を整える。<br />呼吸を深くする。<br />想念を静める。<br />心の向きを整える。<br /><br />
+                その積み重ねが、<br />迷いの中でも選ぶ力になります。
+              </p>
+            </FadeIn>
+            <FadeIn delay={300}>
+              <div className="relative p-1 rounded-[26px] bg-gradient-to-b from-[#C5A45D]/50 to-transparent mb-12">
+                <ChapterImage src="./images/chapter6.webp" alt="第6章 漫画画像" />
+              </div>
+            </FadeIn>
+            <FadeIn delay={400}>
+              <InsightCard>
+                <p>
+                  未来を完全に予測することはできない。<br />けれど、<br />
+                  <span className="font-bold text-[18px] text-[#C5A45D]">整った自分で選ぶことはできる。</span>
+                </p>
+              </InsightCard>
+            </FadeIn>
+          </div>
+        </section>
+      );
+    };
+
+    const Section7 = () => (
+      <section className="py-24 px-6 relative bg-gradient-to-b from-[#FAF7F0] via-[#FDFBF7] to-[#EAF1F6]" id="chapter-7">
+        <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-multiply">
+          <div className="w-full h-1/3 bg-gradient-to-t from-[#B94A48]/20 to-transparent absolute bottom-0"></div>
+          <div className="w-full h-1/3 bg-gradient-to-b from-transparent via-[#C5A45D]/20 to-transparent absolute top-1/3"></div>
+          <div className="w-full h-1/3 bg-gradient-to-b from-[#7B6BB7]/20 to-transparent absolute top-0"></div>
+        </div>
+        <div className="max-w-lg mx-auto relative z-10">
+          <FadeIn>
+            <div className="inline-block bg-[#14233A] text-white text-xs font-bold px-3 py-1 tracking-wider mb-6 shadow-sm">
+              CHAPTER 07
+            </div>
+            <h2 className="text-[28px] md:text-[36px] font-bold text-[#14233A] leading-[1.4] mb-8 relative z-10">
+              頭だけで考え続けない。<br />体の軸から、自分に戻る。
+            </h2>
+            <p className="text-[16px] md:text-[18px] leading-[1.8] text-[#14233A] mb-16 relative z-10">
+              不安な時代ほど、<br />意識は頭に上がりやすくなります。<br /><br />
+              考えすぎる。<br />調べすぎる。<br />比較しすぎる。<br />未来を予測しようとしすぎる。<br /><br />
+              だからこそ、<br />第1チャクラで現実に着地し、<br />第3チャクラから内側を下へおろし、<br />第7チャクラで普遍の真理へ意識を向ける。<br /><br />
+              下へ安定し、中心を整え、上へ開く。<br /><br />
+              その上下の軸が、<br />自分らしく選ぶ力を支えてくれます。
+            </p>
+          </FadeIn>
+          <FadeIn delay={200} className="mb-20 relative py-8 pl-8 pr-4 bg-white/50 backdrop-blur-sm rounded-3xl border border-white shadow-xl">
+            <div className="absolute left-[39px] top-8 bottom-8 w-[2px] bg-gradient-to-t from-[#B94A48] via-[#C5A45D] to-[#7B6BB7] opacity-50"></div>
+            <div className="absolute left-[39px] top-8 bottom-8 w-[2px] bg-white animate-pulse-fast"></div>
+            <div className="space-y-12 relative z-10">
+              <div className="flex items-start gap-6">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-white to-[#7B6BB7] shadow-[0_0_15px_#7B6BB7] shrink-0 mt-1"></div>
+                <div>
+                  <p className="text-[#7B6BB7] font-bold text-sm tracking-widest mb-1">第7チャクラ</p>
+                  <p className="text-xs text-[#14233A]/60 mb-2">頭頂</p>
+                  <p className="font-bold text-[#14233A]">普遍の真理・智慧・慈悲</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-6">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#FFE082] to-[#C5A45D] shadow-[0_0_15px_#C5A45D] shrink-0 mt-1"></div>
+                <div>
+                  <p className="text-[#C5A45D] font-bold text-sm tracking-widest mb-1">第3チャクラ</p>
+                  <p className="text-xs text-[#14233A]/60 mb-2">みぞおち</p>
+                  <p className="font-bold text-[#14233A]">意志・決断・自分で選ぶ力</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-6">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#E57373] to-[#B94A48] shadow-[0_0_15px_#B94A48] shrink-0 mt-1"></div>
+                <div>
+                  <p className="text-[#B94A48] font-bold text-sm tracking-widest mb-1">第1チャクラ</p>
+                  <p className="text-xs text-[#14233A]/60 mb-2">骨盤の下・足裏</p>
+                  <p className="font-bold text-[#14233A]">土台・安定・現実への着地</p>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+          <FadeIn delay={400}>
+            <div className="relative">
+               <div className="absolute inset-0 bg-white/40 blur-2xl rounded-full scale-110 -z-10"></div>
+               <ChapterImage src="./images/chapter7.webp" alt="第7章 漫画画像" />
+            </div>
+          </FadeIn>
+          <FadeIn delay={500}>
+            <InsightCard>
+              <p>
+                不安なときほど、<br />頭だけで考え続けない。<br /><br />
+                第1チャクラで土台を感じる。<br />第3チャクラから内側を下へおろす。<br />第7チャクラで普遍の真理へ意識を向ける。<br /><br />
+                <span className="font-bold text-[18px]">下と上の軸が整うことで、<br />自分らしく選ぶ力が戻りやすくなる。</span>
+              </p>
+            </InsightCard>
+          </FadeIn>
+        </div>
+      </section>
+    );
+
+    const Closing = () => (
+      <section className="py-32 px-6 relative bg-gradient-to-b from-white via-[#FAF7F0] to-[#EAF1F6] overflow-hidden text-center pb-48">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[400px] bg-[radial-gradient(ellipse_at_top,#C5A45D1A_0%,transparent_70%)] pointer-events-none"></div>
+        <div className="max-w-lg mx-auto relative z-10">
+          <FadeIn>
+            <Sparkles className="w-8 h-8 text-[#C5A45D] mx-auto mb-8" />
+            <p className="text-[16px] md:text-[18px] leading-[2] text-[#14233A] mb-16">
+              AI時代、情報も選択肢も増えた。<br />
+              けれど、自分の価値や未来の正解は、<br />
+              前より見えにくくなった。<br /><br />
+              だからこそ、<br />
+              姿勢・呼吸・瞑想・祈り・チャクラを通して、<br />
+              外側と内側を整える。<br /><br />
+              <span className="font-bold text-[#C5A45D]">整った自分で選ぶ力を育てること。</span><br /><br />
+              それが、予測できない時代に<br />
+              未来を切り開く土台になる。
+            </p>
+            <h3 className="text-[24px] md:text-[32px] font-bold text-[#14233A] leading-[1.4] mb-12">
+              整った自分で、未来を選ぶ。<br />
+              <span className="text-[#7B6BB7]">その一歩を、今日から始める。</span>
+            </h3>
+            <div className="flex flex-col gap-4 items-center">
+              <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="w-full max-w-[320px] bg-[#14233A] text-white py-4 px-8 rounded-full font-bold flex items-center justify-center gap-2 hover:bg-[#1a2d4a] transition-all shadow-xl shadow-[#14233A]/20 transform hover:-translate-y-1">
+                7章の物語をもう一度読む
+              </button>
+              <button className="w-full max-w-[320px] bg-white border border-[#C5A45D] text-[#C5A45D] py-4 px-8 rounded-full font-bold flex items-center justify-center hover:bg-[#FAF7F0] transition-colors shadow-sm">
+                整える習慣を始める
+              </button>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+    );
+
+    const BottomNav = () => {
+      const [activeTab, setActiveTab] = useState('story');
+      
+      return (
+        <div className="fixed bottom-0 left-0 w-full z-50 px-4 pb-6 pt-2 pointer-events-none">
+          <div className="max-w-md mx-auto bg-white/80 backdrop-blur-md border border-white shadow-[0_-4px_20px_rgb(0,0,0,0.05)] rounded-full px-6 py-3 flex justify-between items-center pointer-events-auto">
+            <button onClick={() => { setActiveTab('story'); window.scrollTo({top: 0, behavior: 'smooth'}) }} className="flex flex-col items-center gap-1 w-16">
+              <BookOpen className={`w-5 h-5 ${activeTab === 'story' ? 'text-[#C5A45D]' : 'text-[#14233A]/50'}`} />
+              <span className={`text-[10px] font-bold ${activeTab === 'story' ? 'text-[#14233A]' : 'text-[#14233A]/50'}`}>物語</span>
+              {activeTab === 'story' && <div className="w-1 h-1 rounded-full bg-[#C5A45D] mt-0.5"></div>}
+            </button>
+            <button onClick={() => { setActiveTab('chapters'); document.getElementById('chapter-1')?.scrollIntoView({behavior: 'smooth'}) }} className="flex flex-col items-center gap-1 w-16">
+              <Layers className={`w-5 h-5 ${activeTab === 'chapters' ? 'text-[#C5A45D]' : 'text-[#14233A]/50'}`} />
+              <span className={`text-[10px] font-bold ${activeTab === 'chapters' ? 'text-[#14233A]' : 'text-[#14233A]/50'}`}>7つの章</span>
+              {activeTab === 'chapters' && <div className="w-1 h-1 rounded-full bg-[#C5A45D] mt-0.5"></div>}
+            </button>
+            <button onClick={() => { setActiveTab('habit'); document.getElementById('chapter-4')?.scrollIntoView({behavior: 'smooth'}) }} className="flex flex-col items-center gap-1 w-16">
+              <Wind className={`w-5 h-5 ${activeTab === 'habit' ? 'text-[#C5A45D]' : 'text-[#14233A]/50'}`} />
+              <span className={`text-[10px] font-bold ${activeTab === 'habit' ? 'text-[#14233A]' : 'text-[#14233A]/50'}`}>習慣</span>
+              {activeTab === 'habit' && <div className="w-1 h-1 rounded-full bg-[#C5A45D] mt-0.5"></div>}
+            </button>
+            <button className="bg-[#14233A] text-white text-[12px] font-bold px-5 py-2 rounded-full shadow-md">
+              はじめる
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    function App() {
+      return (
+        <main className="max-w-[480px] mx-auto bg-white min-h-screen relative shadow-2xl overflow-hidden">
+          <FirstView />
+          <Section1 />
+          <Section2 />
+          <Section3 />
+          <Section4 />
+          <Section5 />
+          <Section6 />
+          <Section7 />
+          <Closing />
+          <BottomNav />
+        </main>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
