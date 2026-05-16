@@ -133,24 +133,32 @@
       );
     };
 
-    // 漫画画像プレースホルダー
-    const ChapterImage = ({ src, alt }) => (
-      <div className="w-[calc(100%+3rem)] -ml-6 bg-[#EAF1F6] min-h-[400px] relative flex items-center justify-center my-12">
-        <img 
-          src={src} 
-          alt={alt} 
-          className="w-full h-auto relative z-10 block" 
-          onError={(e) => {
-            e.target.style.display = 'none';
-            e.target.nextElementSibling.style.display = 'flex';
-          }}
-        />
-        <div className="absolute inset-0 hidden flex-col items-center justify-center text-[#14233A]/40 font-bold p-8 text-center z-0 bg-[#EAF1F6]">
-          <span className="text-lg">{alt}</span>
-          <span className="text-sm font-normal mt-2">（ファイル: {src} が見つかりません）</span>
+    // 漫画画像プレースホルダー（単一・複数対応）
+    const ChapterImage = ({ src, alt }) => {
+      const srcArray = Array.isArray(src) ? src : [src];
+      
+      return (
+        <div className="w-[calc(100%+3rem)] -ml-6 bg-[#EAF1F6] relative flex flex-col items-center justify-center my-12">
+          {srcArray.map((s, idx) => (
+            <div key={idx} className="w-full relative min-h-[400px] flex items-center justify-center">
+              <img 
+                src={s} 
+                alt={`${alt} ${srcArray.length > 1 ? idx + 1 : ''}`} 
+                className="w-full h-auto relative z-10 block" 
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextElementSibling.style.display = 'flex';
+                }}
+              />
+              <div className="absolute inset-0 hidden flex-col items-center justify-center text-[#14233A]/40 font-bold p-8 text-center z-0 bg-[#EAF1F6]">
+                <span className="text-lg">{alt} {srcArray.length > 1 ? `(${idx + 1}/${srcArray.length})` : ''}</span>
+                <span className="text-sm font-normal mt-2">（ファイル: {s} が見つかりません）</span>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
-    );
+      );
+    };
 
     // 気づきカードコンポーネント
     const InsightCard = ({ title = "この章の気づき", children }) => (
@@ -639,15 +647,25 @@
               CHAPTER 07
             </div>
             <h2 className="text-[28px] md:text-[36px] font-bold text-[#14233A] leading-[1.4] mb-8 relative z-10">
-              頭だけで考え続けない。<br />体の軸から、自分に戻る。
+              第1・第3・第7チャクラを<br />一直線に整える
             </h2>
-            <p className="text-[16px] md:text-[18px] leading-[1.8] text-[#14233A] mb-16 relative z-10">
-              不安な時代ほど、<br />意識は頭に上がりやすくなります。<br /><br />
-              考えすぎる。<br />調べすぎる。<br />比較しすぎる。<br />未来を予測しようとしすぎる。<br /><br />
-              だからこそ、<br />第1チャクラで現実に着地し、<br />第3チャクラから内側を下へおろし、<br />第7チャクラで普遍の真理へ意識を向ける。<br /><br />
-              下へ安定し、中心を整え、上へ開く。<br /><br />
-              その上下の軸が、<br />自分らしく選ぶ力を支えてくれます。
+            <p className="text-[18px] md:text-[20px] font-bold text-[#C5A45D] leading-[1.6] mb-12 relative z-10">
+              椅子でも、あぐらでもいい。<br />
+              大切なのは、下で安定し、中心を整え、上へ開くこと。
             </p>
+            <div className="text-[16px] md:text-[18px] leading-[1.8] text-[#14233A] mb-16 relative z-10 space-y-6">
+              <p>
+                不安なとき、人の意識は頭に上がりやすい。<br />
+                <span className="text-[14px] text-[#14233A]/70 font-bold block mt-4 mb-2">考えすぎる。<br />比較しすぎる。<br />未来を予測しすぎる。</span>
+                すると、頭ばかりが重くなり、体の中心軸が弱くなる。<br /><br />
+                だからこそ瞑想では、まず姿勢と軸を整える。
+              </p>
+              <p>
+                大切なのは、<br />
+                第1チャクラ、第3チャクラ、第7チャクラ。<br />
+                この3点が、一本の線でつながるように意識すること。
+              </p>
+            </div>
           </FadeIn>
           <FadeIn delay={200} className="mb-20 relative py-8 pl-8 pr-4 bg-white/50 backdrop-blur-sm rounded-3xl border border-white shadow-xl">
             <div className="absolute left-[39px] top-8 bottom-8 w-[2px] bg-gradient-to-t from-[#B94A48] via-[#C5A45D] to-[#7B6BB7] opacity-50"></div>
@@ -673,24 +691,37 @@
                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#E57373] to-[#B94A48] shadow-[0_0_15px_#B94A48] shrink-0 mt-1"></div>
                 <div>
                   <p className="text-[#B94A48] font-bold text-sm tracking-widest mb-1">第1チャクラ</p>
-                  <p className="text-xs text-[#14233A]/60 mb-2">骨盤の下・足裏</p>
+                  <p className="text-xs text-[#14233A]/60 mb-2">会陰部・骨盤底・背骨の根元</p>
                   <p className="font-bold text-[#14233A]">土台・安定・現実への着地</p>
                 </div>
               </div>
             </div>
           </FadeIn>
+          
+          <FadeIn delay={300} className="mb-12">
+            <div className="bg-white/60 backdrop-blur-md p-6 rounded-2xl text-center shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-white">
+               <p className="text-[16px] leading-[1.8] text-[#14233A]">
+                 そのうえで、瞑想の座り方には大きく2つある。<br /><br />
+                 <span className="font-bold">・椅子に座って行う瞑想</span><br />
+                 <span className="font-bold">・あぐら・半結跏趺坐・結跏趺坐で行う瞑想</span><br /><br />
+                 どちらも本質は同じ。
+               </p>
+            </div>
+          </FadeIn>
+
           <FadeIn delay={400}>
             <div className="relative">
                <div className="absolute inset-0 bg-white/40 blur-2xl rounded-full scale-110 -z-10"></div>
-               <ChapterImage src="./images/chapter7.webp" alt="第7章 漫画画像" />
+               <ChapterImage src={['./images/chapter7-1.webp', './images/chapter7-2.webp']} alt="第7章 漫画画像" />
             </div>
           </FadeIn>
           <FadeIn delay={500}>
             <InsightCard>
               <p>
-                不安なときほど、<br />頭だけで考え続けない。<br /><br />
-                第1チャクラで土台を感じる。<br />第3チャクラから内側を下へおろす。<br />第7チャクラで普遍の真理へ意識を向ける。<br /><br />
-                <span className="font-bold text-[18px]">下と上の軸が整うことで、<br />自分らしく選ぶ力が戻りやすくなる。</span>
+                肩の力を抜き、顎を軽く引き、背骨を自然に立て、<br />
+                <span className="font-bold text-[#C5A45D] text-[18px]">第1・第3・第7チャクラを一直線に通すこと。</span><br /><br />
+                下と上の軸が整うことで、<br />
+                自分らしく選ぶ力が戻りやすくなります。
               </p>
             </InsightCard>
           </FadeIn>
