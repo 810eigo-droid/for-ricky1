@@ -132,11 +132,11 @@
 
     // 漫画画像プレースホルダー
     const ChapterImage = ({ src, alt }) => (
-      <div className="w-full rounded-[24px] overflow-hidden border border-[#14233A]/10 shadow-[0_8px_30px_rgb(0,0,0,0.05)] bg-[#EAF1F6] min-h-[400px] relative flex items-center justify-center my-8">
+      <div className="w-[calc(100%+3rem)] -ml-6 bg-[#EAF1F6] min-h-[400px] relative flex items-center justify-center my-12">
         <img 
           src={src} 
           alt={alt} 
-          className="w-full h-auto relative z-10" 
+          className="w-full h-auto relative z-10 block" 
           onError={(e) => {
             e.target.style.display = 'none';
             e.target.nextElementSibling.style.display = 'flex';
@@ -176,8 +176,8 @@
               AI時代に、自分の軸を取り戻すための<br />7章のスマートゥーン物語
             </h2>
             <h1 className="text-[34px] md:text-[44px] font-bold leading-[1.4] text-[#14233A] mb-12">
-              選択に迷う時代<br />こそ
-              <span className="text-[#C5A45D]">整える力</span>が<br /><span className="text-[#7B6BB7]">未来</span>を変える
+              選択に迷う時代こそ、<br />
+              <span className="text-[#C5A45D]">整える力</span>が<span className="text-[#7B6BB7]">未来</span>を変える
             </h1>
             <div className="text-[16px] leading-[2] text-[#14233A]/80 mb-16 space-y-6">
               <p>情報が増えた。<br />選択肢も増えた。<br />でも、自分の正解は見えにくくなった。</p>
@@ -506,9 +506,7 @@
               </p>
             </FadeIn>
             <FadeIn delay={300}>
-              <div className="relative p-1 rounded-[26px] bg-gradient-to-b from-[#C5A45D]/50 to-transparent mb-12">
-                <ChapterImage src="./images/chapter6.webp" alt="第6章 漫画画像" />
-              </div>
+              <ChapterImage src="./images/chapter6.webp" alt="第6章 漫画画像" />
             </FadeIn>
             <FadeIn delay={400}>
               <InsightCard>
